@@ -29,13 +29,14 @@ pairing and control protocols, so the same app pairs either.
 
 | Module | Role |
 |---|---|
-| `cli.py` | `musegadget pair`, `run`, `send-user-msg`, `info`, `unpair` |
+| `cli.py` | `musegadget pair`, `pair-hub`, `run`, `send-user-msg`, `info`, `unpair` |
 | `pair.py` | `pair()`: opens BLE setup, checks and saves the pairing, prints nothing |
 | `pairing.py` | Community pairing v5: P-256 ECDH, HKDF-SHA256, AES-256-GCM, `confirm_app` |
 | `ble_framing.py` | Chunked BLE framing (`0xFE`, index, total, payload) |
 | `ble_setup.py` | Setup commands behind the GATT characteristics (no BlueZ dependency) |
 | `ble_server.py` | BlueZ GATT peripheral and advertisement over D-Bus (GLib loop) |
 | `identity.py` | Persistent identity: `homelink-xxxxxx` node id, `MuseGadgetXXXXXX` BLE name |
+| `hub_pair.py` | `musegadget pair-hub`: pairs with a self-hosted Claude hub (`../hub`) instead of the Muse app |
 | `muse_api.py` | `fetch_vms` and device token refresh |
 | `link_client.py` | One session: `/v1/noise` upgrade, Noise XX, `/link-control`, `/chat/stream`, `/chat/subscribe`, TTS streams |
 | `service.py` | `musegadget run`: reconnect loop, token rotation, local socket |

@@ -1,0 +1,6 @@
+aiohttp>=3.9
+anthropic>=2.3
+musegadget
+
+[test]
+pytest

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gadgethub"
+version = "0.1.0"
+description = "A self-hosted hub that connects Muse gadgets to Claude"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = ["aiohttp>=3.9", "anthropic>=2.3", "musegadget"]
+
+[project.scripts]
+gadgethub = "gadgethub.cli:main"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.uv.sources]
+musegadget = { path = "../linux" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gadgethub = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

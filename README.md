@@ -36,6 +36,7 @@ warranties, brownouts, or bankruptcies. Proceed at your own risk!
 |---|---|
 | [**ESP32 Device SDK**](esp32) | Connect your ESP32 board to Muse through our open source SDK. Throw in a screen to show images, add audio in and out, or wire up other sensors. |
 | [**Linux Device SDK**](linux) | Turn that spare Raspberry Pi or Linux box into a Muse gadget. Hack in your own commands to let Muse handle sysadmin chores or your Home Assistant setup. |
+| [**Gadget Hub**](hub) | Run your own hub and use Claude in place of the Muse cloud: Claude uses your gadgets' commands as tools, and you chat with it in a browser. Linux gadgets pair with it today. |
 | [**Muse Gadgets Test**](android/musegadgetstest) ([iPhone](ios/musegadgetstest)) | Stream your phone's camera, or a clip, to an ESP32 gadget's screen over Wi-Fi: H.264 or VP8 decoded on the board, 30 fps on the round 466 px boards. [`protocols/VIDEO.md`](protocols/VIDEO.md) explains how. |
 
 Before you flash or pair a gadget, get an

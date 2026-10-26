@@ -24,6 +24,7 @@ A Muse gadget is a device that pairs with the Muse phone app over BLE (community
   - `simulator/`: an SDL/LVGL desktop preview that compiles the production `muse_ui.c` with host adapters. It doesn't need IDF.
   - `tests/`: Python unittest harnesses that compile the firmware C/C++ against fakes (`*_fakes/`, `*_harness.c`) on the host.
 - `linux/`: the `musegadget` Python package (src layout, `uv`), which turns a Linux box or Raspberry Pi into a gadget. Commands live in `executor.py` (`COMMAND_SPECS` and `Executor.run`).
+- `hub/`: the `gadgethub` package (Python 3.10+, aiohttp, the `anthropic` SDK), a self-hosted stand-in for the Muse cloud backed by Claude. It serves the same device API and Noise endpoints the gadgets call, reusing `musegadget.noise` from `../linux` as the responder. `agent.py` runs the Claude tool-use loop, with each connected gadget's commands turned into tools (`<node_id>__<command>`). Linux gadgets pair with it through `musegadget pair-hub`; ESP32 pairing and voice aren't supported yet (`hub/README.md`).
 - `android/musegadgetstest`, `ios/musegadgetstest`: Muse Gadgets Test, the phone app that streams H.264/VP8 video to a board over Wi-Fi. The protocol and its trust rules are in `protocols/VIDEO.md`.
 - `web-flasher/`: a GitHub Pages flasher for the boards in `boards.json`. Each `board` there must match a board in the `.github/workflows/esp32.yml` build matrix, or CI fails.
 - `skills/`: community Markdown-only device skills (`gadget-<device>/SKILL.md` with a matching YAML `name`), listed in `CATALOG.md`.
@@ -68,7 +69,16 @@ uv run --with pytest --with . pytest tests/test_executor.py -k <name>   # a sing
 shellcheck install.sh
 ```
 
-CI also runs the tests on Python 3.9 with `cryptography==3.3.2 websockets==13.1`, the Debian 11 floor. Check against those pins if you touch pairing or the Noise code.
+### Hub (run from `hub/`)
+
+```sh
+uv run --with pytest --with . pytest
+uv run --with pytest --with . pytest tests/test_agent.py -k <name>
+```
+
+The tests need no API key: `tests/conftest.py` has a scripted stand-in for the Claude client, and `test_end_to_end.py` runs the real Linux client against the real server. A change to the Linux client's protocol code can break the hub, so run both suites.
+
+CI also runs the Linux tests on Python 3.9 with `cryptography==3.3.2 websockets==13.1`, the Debian 11 floor. Check against those pins if you touch pairing or the Noise code.
 
 ## Rules that span the codebase
 
@@ -79,9 +89,11 @@ CI also runs the tests on Python 3.9 with `cryptography==3.3.2 websockets==13.1`
 - **Flashing.** Identify the attached board before flashing, using the procedure in `esp32/AGENTS.md` (running firmware's `--status`, the USB descriptor, `esptool chip-id`). Don't assume the default board. Never enable Secure Boot, flash encryption or eFuse pairing auth. Don't `erase-flash` unless you mean to wipe pairing. Write to the SenseCAP Watcher only through `tools/muse/paced_esptool.py` (or `board.sh`), and never interrupt that flash.
 - **Adding a firmware command** takes two places that must use the same name: `build_register_json()` in `main/noise_control.cpp` and `on_ws_command()` in `main/app.c`. Validate the params yourself. Don't block the Noise task: do slow work in a task that returns `{"_async": true}` and later calls `noise_ctrl_send_command_result()` exactly once. Gate hardware-specific commands on a Kconfig option in both places, and keep `link.register` under 8 KB. Environmental sensors go through `sensors.read`. The Linux client must register as `platform: "linux"`, `device_family: "homehub"`. Never use family `link` or advertise `device.ota`: the server pushes ESP32 firmware to every `link` device.
 - **Third-party code** (minimp3, tinyh264, libvpx_vp8, `pixel_font.c`, `epd_ssd1677.c`, the EchoEar init header) keeps its upstream license header and style. A new third-party file goes in the License tables of both `README.md` and `esp32/README.md`. The Jollybot avatar in `esp32/avatar/` carries only a Meta copyright line, with no Apache header. Don't commit `components/muse/avatar/`.
+- **The hub's Claude loop is append-only.** Assistant turns go back into history exactly as the API returned them (thinking, fallback and compaction blocks included), and every `tool_use` gets a `tool_result`, even when it isn't run. Don't trim or rewrite earlier turns. The default model is `claude-opus-5-5`.
 - **Video input is untrusted.** When changing the transport, `muse_vdec.c` or `fill()` in `muse_video.c`, keep the checks listed in the Trust section of `protocols/VIDEO.md`.
 
 ## Before handing back work
 
 - ESP32: `idf.py build` passes, plus the board build you touched, with the app still fitting its partition. The host tests pass. If you flashed, the boot log reaches `starting` with no panic or reboot loop.
 - Linux: the tests pass, on Python 3.9 with cryptography 3.3.2 too if you touched pairing or Noise. `install.sh` stays ShellCheck-clean. If you deployed, the log shows `registered with the Muse`.
+- Hub: the hub tests pass, and the Linux tests too if you touched `linux/src/musegadget/noise` or `link_client.py`.

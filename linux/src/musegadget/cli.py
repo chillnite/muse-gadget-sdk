@@ -49,6 +49,24 @@ def cmd_pair(args: argparse.Namespace) -> int:
     return 1
 
 
+def cmd_pair_hub(args: argparse.Namespace) -> int:
+    import socket
+
+    from musegadget.hub_pair import HubPairError, pair_with_hub
+
+    if config.load_json(config.PAIRING_FILE) and not args.force:
+        print("Already paired. Run `musegadget unpair` first, or pass --force.", file=sys.stderr)
+        return 1
+    ident = identity.load_or_create()
+    try:
+        pair_with_hub(args.hub_url, args.code, ident.node_id, args.name or socket.gethostname())
+    except HubPairError as exc:
+        print(f"Can't pair: {exc}.", file=sys.stderr)
+        return 1
+    print("Paired with the hub. Restart the service: sudo systemctl restart musegadget")
+    return 0
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     from musegadget.executor import Account, Executor
     from musegadget.service import run_service
@@ -137,6 +155,13 @@ def main(argv: list[str] | None = None) -> int:
                              help="seconds to keep setup open (default: %(default)s)")
     pair_parser.add_argument("--force", action="store_true", help="pair even if already paired")
     pair_parser.set_defaults(func=cmd_pair)
+
+    hub = sub.add_parser("pair-hub", help="pair with a self-hosted Claude hub instead of the Muse app")
+    hub.add_argument("hub_url", help="the hub's https:// address")
+    hub.add_argument("code", help="a pairing code from `gadgethub pair-code`")
+    hub.add_argument("--name", help="the name the hub shows for this device (default: the hostname)")
+    hub.add_argument("--force", action="store_true", help="pair even if already paired")
+    hub.set_defaults(func=cmd_pair_hub)
 
     run = sub.add_parser("run", help="stay connected to the Muse and serve its commands")
     run.add_argument(
